@@ -1,0 +1,75 @@
+{
+  "pinterest": {
+    "dualImageSettings": {
+
+ "fontSize": 60,
+  "fontFamily": "Comic Sans MS",
+  "fontWeight": "300",
+  "textColor": "#FFFFFF",
+  "strokeColor": "#FFFFFF",
+  "strokeWidth": 0,
+  "backgroundColor": "rgba(0, 0, 0, 0.8)",
+  "textAlign": "center",
+  "padding": 1,
+  "showBackground": true
+
+
+    },
+    "themes": {
+      "elegant": {
+        "fontSize": 44,
+        "fontFamily": "Georgia",
+        "textColor": "#2C3E50",
+        "strokeColor": "#FFFFFF",
+        "strokeWidth": 2,
+        "backgroundColor": "rgba(255, 255, 255, 0.9)",
+        "fontWeight": "normal"
+      },
+      "bold": {
+        "fontSize": 56,
+        "fontFamily": "Impact",
+        "textColor": "#FFD700",
+        "strokeColor": "#000000",
+        "strokeWidth": 4,
+        "backgroundColor": "rgba(0, 0, 0, 0.8)",
+        "fontWeight": "bold"
+      },
+      "modern": {
+        "fontSize": 48,
+        "fontFamily": "Helvetica",
+        "textColor": "#FFFFFF",
+        "strokeColor": "#333333",
+        "strokeWidth": 2,
+        "backgroundColor": "rgba(0, 0, 0, 0.6)",
+        "fontWeight": "300"
+      },
+      "food": {
+        "fontSize": 60,
+        "fontFamily": "Helvetica",
+        "textColor": "#FF69B4",
+        "strokeColor": "#000000",
+        "strokeWidth": 6,
+        "backgroundColor": "rgba(255, 255, 255, 0.9)",
+        "fontWeight": "black"
+      },
+      "minimalist": {
+        "fontSize": 42,
+        "fontFamily": "Helvetica",
+        "textColor": "#333333",
+        "strokeColor": "#FFFFFF",
+        "strokeWidth": 1,
+        "backgroundColor": "rgba(255, 255, 255, 0.7)",
+        "fontWeight": "300"
+      }
+    },
+    "settings": {
+      "defaultTheme": "dualImageSettings",
+      "showTextOverlay": true,
+      "showTextBackground": true,
+      "pinDimensions": {
+        "width": 600,
+        "height": 900
+      }
+    }
+  }
+}

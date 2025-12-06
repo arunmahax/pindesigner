@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pinterest Pin Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #e60023, #bd081c);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+        
+        .form-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #e60023;
+        }
+        
+        .color-input {
+            height: 50px !important;
+            cursor: pointer;
+        }
+        
+        .generate-btn {
+            background: linear-gradient(135deg, #e60023, #bd081c);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .generate-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .preview-section {
+            text-align: center;
+        }
+        
+        .preview-section h3 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 1.5rem;
+        }
+        
+        .preview-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #ddd;
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            max-height: 500px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        
+        .error {
+            color: #e60023;
+            background: #fff5f5;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #e60023;
+            margin-top: 20px;
+        }
+        
+        .success {
+            color: #28a745;
+            background: #f0f9f0;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📌 Pinterest Pin Generator</h1>
+            <p>Create stunning Pinterest pins with custom text overlays</p>
+        </div>
+        
+        <div class="content">
+            <div class="form-section">
+                <h3>🎨 Pin Configuration</h3>
+                <form id="pinForm">
+                    <div class="form-group">
+                        <label for="topImageUrl">Top Image URL</label>
+                        <input type="url" id="topImageUrl" placeholder="https://example.com/top-image.jpg" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="bottomImageUrl">Bottom Image URL</label>
+                        <input type="url" id="bottomImageUrl" placeholder="https://example.com/bottom-image.jpg" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="recipeTitle">Recipe Title</label>
+                        <input type="text" id="recipeTitle" placeholder="Delicious Chocolate Cake" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="showTextOverlay">
+                            <input type="checkbox" id="showTextOverlay" checked> Show Text Overlay
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="showTextBackground">
+                            <input type="checkbox" id="showTextBackground" checked> Show Text Background
+                        </label>
+                        <small style="color: #666; display: block; margin-top: 5px;">
+                            When unchecked, text appears directly over images without background layer
+                        </small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="fontSize">Font Size</label>
+                        <input type="range" id="fontSize" min="20" max="120" value="42">
+                        <span id="fontSizeValue">42px</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="fontFamily">Font Family</label>
+                        <select id="fontFamily">
+                            <option value="Arial">Arial</option>
+                            <option value="Helvetica">Helvetica</option>
+                            <option value="Times New Roman">Times New Roman</option>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Verdana">Verdana</option>
+                            <option value="Impact">Impact</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="textColor">Text Color</label>
+                        <input type="color" id="textColor" value="#ffffff" class="color-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="strokeColor">Text Stroke Color</label>
+                        <input type="color" id="strokeColor" value="#000000" class="color-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="strokeWidth">Stroke Width</label>
+                        <input type="range" id="strokeWidth" min="0" max="10" value="2">
+                        <span id="strokeWidthValue">2px</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="backgroundColor">Background Color</label>
+                        <input type="color" id="backgroundColor" value="#000000" class="color-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="backgroundOpacity">Background Opacity</label>
+                        <input type="range" id="backgroundOpacity" min="0" max="1" step="0.1" value="0.7">
+                        <span id="backgroundOpacityValue">0.7</span>
+                    </div>
+                    
+                    <button type="submit" class="generate-btn" id="generateBtn">
+                        🎨 Generate Pinterest Pin
+                    </button>
+                </form>
+                
+                <div id="message"></div>
+            </div>
+            
+            <div class="preview-section">
+                <h3>📋 Preview</h3>
+                <div class="preview-container" id="previewContainer">
+                    <p class="loading">Your generated pin will appear here...</p>
+                </div>
+                
+                <button id="downloadBtn" style="display: none; margin-top: 20px;" class="generate-btn">
+                    ⬇️ Download Pin
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+        
+        // Update display values for range inputs
+        document.getElementById('fontSize').addEventListener('input', function() {
+            document.getElementById('fontSizeValue').textContent = this.value + 'px';
+        });
+        
+        document.getElementById('strokeWidth').addEventListener('input', function() {
+            document.getElementById('strokeWidthValue').textContent = this.value + 'px';
+        });
+        
+        document.getElementById('backgroundOpacity').addEventListener('input', function() {
+            document.getElementById('backgroundOpacityValue').textContent = this.value;
+        });
+        
+        // Handle text overlay toggle
+        document.getElementById('showTextOverlay').addEventListener('change', function() {
+            const textOptions = document.querySelectorAll('#fontSize, #fontFamily, #textColor, #strokeColor, #strokeWidth, #backgroundColor, #backgroundOpacity');
+            const recipeTitle = document.getElementById('recipeTitle');
+            const showTextBackground = document.getElementById('showTextBackground');
+            
+            textOptions.forEach(option => {
+                option.parentElement.style.display = this.checked ? 'block' : 'none';
+            });
+            
+            // Enable/disable text background toggle based on text overlay
+            showTextBackground.parentElement.style.display = this.checked ? 'block' : 'none';
+            
+            recipeTitle.required = this.checked;
+            if (!this.checked) {
+                recipeTitle.value = '';
+            }
+        });
+        
+        // Form submission
+        document.getElementById('pinForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const generateBtn = document.getElementById('generateBtn');
+            const messageDiv = document.getElementById('message');
+            const previewContainer = document.getElementById('previewContainer');
+            const downloadBtn = document.getElementById('downloadBtn');
+            
+            // Show loading state
+            generateBtn.disabled = true;
+            generateBtn.textContent = '🔄 Generating...';
+            messageDiv.innerHTML = '';
+            previewContainer.innerHTML = '<p class="loading">Generating your Pinterest pin...</p>';
+            downloadBtn.style.display = 'none';
+            
+            try {
+                // Collect form data
+                const showTextOverlay = document.getElementById('showTextOverlay').checked;
+                const showTextBackground = document.getElementById('showTextBackground').checked;
+                const formData = {
+                    topImageUrl: document.getElementById('topImageUrl').value,
+                    bottomImageUrl: document.getElementById('bottomImageUrl').value,
+                    showTextOverlay: showTextOverlay,
+                    showTextBackground: showTextBackground
+                };
+                
+                // Only add text options if overlay is enabled
+                if (showTextOverlay) {
+                    formData.recipeTitle = document.getElementById('recipeTitle').value;
+                    formData.textOptions = {
+                        fontSize: parseInt(document.getElementById('fontSize').value),
+                        fontFamily: document.getElementById('fontFamily').value,
+                        textColor: document.getElementById('textColor').value,
+                        strokeColor: document.getElementById('strokeColor').value,
+                        strokeWidth: parseInt(document.getElementById('strokeWidth').value),
+                        backgroundColor: `rgba(${hexToRgb(document.getElementById('backgroundColor').value).r}, ${hexToRgb(document.getElementById('backgroundColor').value).g}, ${hexToRgb(document.getElementById('backgroundColor').value).b}, ${document.getElementById('backgroundOpacity').value})`,
+                        fontWeight: 'bold'
+                    };
+                }
+                
+                // Make API request
+                const response = await fetch(`${API_BASE}/create-pin`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                // Convert response to blob and create image URL
+                const blob = await response.blob();
+                const imageUrl = URL.createObjectURL(blob);
+                
+                // Display the generated image
+                previewContainer.innerHTML = `<img src="${imageUrl}" alt="Generated Pinterest Pin" class="preview-image">`;
+                
+                // Show download button
+                downloadBtn.style.display = 'inline-block';
+                downloadBtn.onclick = function() {
+                    const a = document.createElement('a');
+                    a.href = imageUrl;
+                    a.download = 'pinterest-pin.png';
+                    a.click();
+                };
+                
+                messageDiv.innerHTML = '<div class="success">✅ Pinterest pin generated successfully!</div>';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                messageDiv.innerHTML = `<div class="error">❌ Error generating pin: ${error.message}</div>`;
+                previewContainer.innerHTML = '<p class="loading">Error generating pin. Please try again.</p>';
+            } finally {
+                // Reset button
+                generateBtn.disabled = false;
+                generateBtn.textContent = '🎨 Generate Pinterest Pin';
+            }
+        });
+        
+        // Helper function to convert hex to RGB
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+        
+        // Fill in sample data
+        document.getElementById('topImageUrl').value = 'https://picsum.photos/600/400?random=1';
+        document.getElementById('bottomImageUrl').value = 'https://picsum.photos/600/400?random=2';
+        document.getElementById('recipeTitle').value = 'Amazing Recipe with Auto-Sizing Text That Wraps Beautifully';
+    </script>
+</body>
+</html>

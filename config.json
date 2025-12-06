@@ -1,0 +1,67 @@
+{
+  "service": {
+    "name": "Pinterest Pin Generator",
+    "version": "1.0.0",
+    "port": 3001
+  },
+  "pinterest": {
+    "width": 600,
+    "height": 900,
+    "topImageHeight": 0.4,
+    "textOverlayHeight": 0.2,
+    "bottomImageHeight": 0.4
+  },
+  "defaults": {
+    "textOptions": {
+      "fontSize": 48,
+      "fontFamily": "Montserrat",
+      "textColor": "#3CB36B",
+      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "backgroundStrokeTopColor": "#000000",
+      "backgroundStrokeTopWidth": 6,
+      "backgroundStrokeBottomColor": "#3CB36B",
+      "backgroundStrokeBottomWidth": 6,
+      "backgroundStrokeLeftWidth": 0,
+      "backgroundStrokeRightWidth": 0,
+      "paddingTop": 12,
+      "paddingBottom": 12,
+      "fontWeight": "bold"
+    }, 
+    "topTags": [
+      {
+        "text": "QUICK & EASY",
+        "fontFamily": "Montserrat",
+        "fontWeight": "700",
+        "fontSize": 24,
+        "textColor": "#FFFFFF",
+        "backgroundColor": "#3CB36B",
+        "paddingTop": 12,
+        "paddingBottom": 12,
+        "paddingLeft": 18,
+        "paddingRight": 18,
+        "borderRadius": 10,
+        "position": { "x": 40, "y": 40 }
+      },
+      {
+        "text": "HEALTHY & TASTY",
+        "fontFamily": "Montserrat",
+        "fontWeight": "700",
+        "fontSize": 24,
+        "textColor": "#FFFFFF",
+        "backgroundColor": "#E45B48",
+        "paddingTop": 12,
+        "paddingBottom": 12,
+        "paddingLeft": 18,
+        "paddingRight": 18,
+        "borderRadius": 10,
+        "position": { "x": "right-40", "y": 40 }
+      }
+    ]
+  },
+
+  "limits": {
+    "maxTextLength": 100,
+    "minFontSize": 12,
+    "maxFontSize": 72
+  }
+}
