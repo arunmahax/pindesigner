@@ -1,0 +1,164 @@
+{
+  "example1_default": {
+    "description": "Uses config.json defaults",
+    "request": {
+      "topImageUrl": "https://example.com/image1.jpg",
+      "bottomImageUrl": "https://example.com/image2.jpg",
+      "recipeTitle": "delicious pasta recipe",
+      "topTags": []
+    }
+  },
+  
+  "example2_custom_green_theme": {
+    "description": "Custom green theme for healthy recipes account",
+    "request": {
+      "topImageUrl": "https://example.com/image1.jpg",
+      "bottomImageUrl": "https://example.com/image2.jpg",
+      "recipeTitle": "healthy green smoothie",
+      "topTags": [],
+      "styleOverrides": {
+        "textOptions": {
+          "fontSize": 52,
+          "textColor": "#2E7D32",
+          "backgroundColor": "rgba(200, 230, 201, 1)",
+          "backgroundStrokeTopColor": "#2E7D32",
+          "backgroundStrokeTopWidth": 8,
+          "backgroundStrokeBottomColor": "#2E7D32",
+          "backgroundStrokeBottomWidth": 8
+        },
+        "topTags": [
+          {
+            "text": "HEALTHY",
+            "fontFamily": "Montserrat",
+            "fontWeight": "700",
+            "fontSize": 22,
+            "textColor": "#FFFFFF",
+            "backgroundColor": "#2E7D32",
+            "paddingTop": 10,
+            "paddingBottom": 10,
+            "paddingLeft": 16,
+            "paddingRight": 16,
+            "borderRadius": 10,
+            "position": { "x": 40, "y": 40 }
+          },
+          {
+            "text": "ORGANIC",
+            "fontFamily": "Montserrat",
+            "fontWeight": "700",
+            "fontSize": 22,
+            "textColor": "#FFFFFF",
+            "backgroundColor": "#66BB6A",
+            "paddingTop": 10,
+            "paddingBottom": 10,
+            "paddingLeft": 16,
+            "paddingRight": 16,
+            "borderRadius": 10,
+            "position": { "x": "right-40", "y": 40 }
+          }
+        ]
+      }
+    }
+  },
+
+  "example3_custom_red_theme": {
+    "description": "Custom red theme for spicy recipes account",
+    "request": {
+      "topImageUrl": "https://example.com/image1.jpg",
+      "bottomImageUrl": "https://example.com/image2.jpg",
+      "recipeTitle": "spicy thai curry",
+      "topTags": [],
+      "styleOverrides": {
+        "textOptions": {
+          "fontSize": 48,
+          "textColor": "#C62828",
+          "backgroundColor": "rgba(255, 235, 238, 1)",
+          "backgroundStrokeTopColor": "#C62828",
+          "backgroundStrokeTopWidth": 6,
+          "backgroundStrokeBottomColor": "#E53935",
+          "backgroundStrokeBottomWidth": 6
+        },
+        "topTags": [
+          {
+            "text": "SPICY",
+            "fontFamily": "Montserrat",
+            "fontWeight": "700",
+            "fontSize": 24,
+            "textColor": "#FFFFFF",
+            "backgroundColor": "#D32F2F",
+            "paddingTop": 12,
+            "paddingBottom": 12,
+            "paddingLeft": 18,
+            "paddingRight": 18,
+            "borderRadius": 12,
+            "position": { "x": 40, "y": 40 }
+          },
+          {
+            "text": "AUTHENTIC",
+            "fontFamily": "Montserrat",
+            "fontWeight": "700",
+            "fontSize": 24,
+            "textColor": "#FFFFFF",
+            "backgroundColor": "#F44336",
+            "paddingTop": 12,
+            "paddingBottom": 12,
+            "paddingLeft": 18,
+            "paddingRight": 18,
+            "borderRadius": 12,
+            "position": { "x": "right-40", "y": 40 }
+          }
+        ]
+      }
+    }
+  },
+
+  "example4_custom_blue_theme": {
+    "description": "Custom blue theme for seafood recipes account",
+    "request": {
+      "topImageUrl": "https://example.com/image1.jpg",
+      "bottomImageUrl": "https://example.com/image2.jpg",
+      "recipeTitle": "grilled salmon",
+      "topTags": [],
+      "styleOverrides": {
+        "textOptions": {
+          "fontSize": 50,
+          "textColor": "#1565C0",
+          "backgroundColor": "rgba(227, 242, 253, 1)",
+          "backgroundStrokeTopColor": "#1976D2",
+          "backgroundStrokeTopWidth": 7,
+          "backgroundStrokeBottomColor": "#42A5F5",
+          "backgroundStrokeBottomWidth": 7
+        },
+        "topTags": [
+          {
+            "text": "SEAFOOD",
+            "fontFamily": "Montserrat",
+            "fontWeight": "700",
+            "fontSize": 20,
+            "textColor": "#FFFFFF",
+            "backgroundColor": "#1976D2",
+            "paddingTop": 10,
+            "paddingBottom": 10,
+            "paddingLeft": 14,
+            "paddingRight": 14,
+            "borderRadius": 8,
+            "position": { "x": 40, "y": 40 }
+          },
+          {
+            "text": "OMEGA-3",
+            "fontFamily": "Montserrat",
+            "fontWeight": "700",
+            "fontSize": 20,
+            "textColor": "#FFFFFF",
+            "backgroundColor": "#2196F3",
+            "paddingTop": 10,
+            "paddingBottom": 10,
+            "paddingLeft": 14,
+            "paddingRight": 14,
+            "borderRadius": 8,
+            "position": { "x": "right-40", "y": 40 }
+          }
+        ]
+      }
+    }
+  }
+}

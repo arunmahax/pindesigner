@@ -13,6 +13,36 @@ const config = require('./config.json');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Register custom fonts
+const fontsDir = path.join(__dirname, 'fonts');
+const fonts = [
+  { family: 'Montserrat', file: 'Montserrat_400.ttf', weight: '400' },
+  { family: 'Montserrat', file: 'Montserrat_700.ttf', weight: '700' },
+  { family: 'Playfair Display', file: 'Playfair_Display_400.ttf', weight: '400' },
+  { family: 'Playfair Display', file: 'Playfair_Display_700.ttf', weight: '700' },
+  { family: 'Bebas Neue', file: 'Bebas_Neue_400.ttf', weight: '400' },
+  { family: 'Yellowtail', file: 'Yellowtail_400.ttf', weight: '400' },
+  { family: 'DM Serif Display', file: 'DM_Serif_Display_400.ttf', weight: '400' },
+  { family: 'Merriweather', file: 'Merriweather_400.ttf', weight: '400' },
+  { family: 'Lato', file: 'Lato_400.ttf', weight: '400' },
+  { family: 'Lato', file: 'Lato_700.ttf', weight: '700' },
+  { family: 'Open Sans', file: 'Open_Sans_400.ttf', weight: '400' },
+  { family: 'Open Sans', file: 'Open_Sans_700.ttf', weight: '700' },
+  { family: 'Roboto', file: 'Roboto_400.ttf', weight: '400' },
+  { family: 'Roboto', file: 'Roboto_700.ttf', weight: '700' }
+];
+
+let registeredCount = 0;
+fonts.forEach(font => {
+  const fontPath = path.join(fontsDir, font.file);
+  if (fs.existsSync(fontPath)) {
+    registerFont(fontPath, { family: font.family, weight: font.weight });
+    registeredCount++;
+  }
+});
+
+console.log(`✅ Registered ${registeredCount} font variants`);
+
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, 'uploads', 'pinterest-pins');
 if (!fs.existsSync(uploadsDir)) {
@@ -27,9 +57,9 @@ app.use(express.static('public'));
 // Serve uploaded images statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Pinterest pin dimensions (typical ratios)
-const PINTEREST_WIDTH = 600;
-const PINTEREST_HEIGHT = 900;
+// Pinterest pin dimensions (9:16 aspect ratio for social media)
+const PINTEREST_WIDTH = 1080;
+const PINTEREST_HEIGHT = 1920;
 
 // Download image from URL
 async function downloadImage(url) {
@@ -408,8 +438,18 @@ app.post('/api/create-pin', async (req, res) => {
       showTextOverlay = true, // Control entire text overlay visibility
       showTextBackground = true, // New option to control just the background layer
       titleBand = null, // Title band configuration
-      topTags = null // Array of tag configurations
+      topTags = null, // Array of tag configurations
+      styleOverrides = {} // NEW: Custom styling overrides for this request
     } = req.body;
+
+    // Merge config defaults with request overrides
+    const mergedTextOptions = {
+      ...config.defaults.textOptions,
+      ...styleOverrides.textOptions,
+      ...textOptions // textOptions has highest priority for backward compatibility
+    };
+
+    const mergedTopTags = styleOverrides.topTags || config.defaults.topTags;
 
     // Capitalize recipe title
     const recipeTitle = toTitleCase(rawRecipeTitle);
@@ -449,7 +489,8 @@ app.post('/api/create-pin', async (req, res) => {
       
       // First, try to create text overlay with default height
       let textResult = createTextOverlay(recipeTitle, {
-        ...textOptions,
+        ...mergedTextOptions,
+        ...textOptions, // Keep backward compatibility
         width: PINTEREST_WIDTH,
         height: textOverlayHeight,
         showBackground: showTextBackground // Pass the background toggle option
@@ -461,7 +502,8 @@ app.post('/api/create-pin', async (req, res) => {
         
         // Recreate with dynamic height
         textResult = createTextOverlay(recipeTitle, {
-          ...textOptions,
+          ...mergedTextOptions,
+          ...textOptions, // Keep backward compatibility
           width: PINTEREST_WIDTH,
           height: textOverlayHeight,
           showBackground: showTextBackground // Pass the background toggle option
@@ -518,8 +560,8 @@ app.post('/api/create-pin', async (req, res) => {
 
     // Add top tags if provided
     if (topTags && Array.isArray(topTags)) {
-      // Use config defaults if empty array
-      const tagsToUse = topTags.length > 0 ? topTags : config.defaults.topTags;
+      // Use merged config defaults if empty array
+      const tagsToUse = topTags.length > 0 ? topTags : mergedTopTags;
       
       for (const tagConfig of tagsToUse) {
         const tag = createTag(tagConfig);
@@ -653,10 +695,24 @@ app.get('/api/docs', (req, res) => {
   res.json(docs);
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Pinterest Pin Generator Service running on port ${PORT}`);
   console.log(`📖 API Documentation: http://localhost:${PORT}/api/docs`);
   console.log(`💚 Health Check: http://localhost:${PORT}/api/health`);
+});
+
+// Handle server errors
+server.on('error', (error) => {
+  console.error('❌ Server error:', error);
+  process.exit(1);
+});
+
+// Keep the process alive
+process.on('SIGTERM', () => {
+  console.log('👋 SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('✅ HTTP server closed');
+  });
 });
 
 module.exports = app;

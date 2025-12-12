@@ -5,8 +5,8 @@
     "port": 3001
   },
   "pinterest": {
-    "width": 600,
-    "height": 900,
+    "width": 1080,
+    "height": 1920,
     "topImageHeight": 0.4,
     "textOverlayHeight": 0.2,
     "bottomImageHeight": 0.4
