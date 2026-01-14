@@ -1,67 +1,83 @@
 {
   "service": {
     "name": "Pinterest Pin Generator",
-    "version": "1.0.0",
+    "version": "2.1.0",
     "port": 3001
   },
   "pinterest": {
-    "width": 1080,
-    "height": 1920,
-    "topImageHeight": 0.4,
-    "textOverlayHeight": 0.2,
-    "bottomImageHeight": 0.4
+    "width": 1000,
+    "height": 2000,
+    "aspectRatio": "1:2"
+  },
+  "gemini": {
+    "model": "gemini-2.0-flash",
+    "maxTitleWords": 6
   },
   "defaults": {
     "textOptions": {
       "fontSize": 48,
       "fontFamily": "Montserrat",
-      "textColor": "#3CB36B",
-      "backgroundColor": "rgba(255, 255, 255, 1)",
+      "fontWeight": "700",
+      "textColor": "#FFFFFF",
+      "backgroundColor": "rgba(0, 0, 0, 0.7)",
       "backgroundStrokeTopColor": "#000000",
-      "backgroundStrokeTopWidth": 6,
-      "backgroundStrokeBottomColor": "#3CB36B",
-      "backgroundStrokeBottomWidth": 6,
+      "backgroundStrokeTopWidth": 0,
+      "backgroundStrokeBottomColor": "#000000",
+      "backgroundStrokeBottomWidth": 0,
       "backgroundStrokeLeftWidth": 0,
       "backgroundStrokeRightWidth": 0,
-      "paddingTop": 12,
-      "paddingBottom": 12,
-      "fontWeight": "bold"
-    }, 
+      "paddingTop": 20,
+      "paddingBottom": 20,
+      "strokeColor": "#000000",
+      "strokeWidth": 2
+    },
+    "titleBand": {
+      "textOptions": {
+        "fontSize": 36,
+        "fontFamily": "Montserrat",
+        "fontWeight": "700",
+        "textColor": "#FFFFFF",
+        "backgroundColor": "#E60023",
+        "paddingTop": 20,
+        "paddingBottom": 20,
+        "paddingLeft": 30,
+        "paddingRight": 30,
+        "align": "center"
+      }
+    },
     "topTags": [
       {
-        "text": "QUICK & EASY",
+        "text": "RECIPE",
         "fontFamily": "Montserrat",
         "fontWeight": "700",
-        "fontSize": 24,
+        "fontSize": 18,
         "textColor": "#FFFFFF",
-        "backgroundColor": "#3CB36B",
-        "paddingTop": 12,
-        "paddingBottom": 12,
-        "paddingLeft": 18,
-        "paddingRight": 18,
-        "borderRadius": 10,
-        "position": { "x": 40, "y": 40 }
-      },
-      {
-        "text": "HEALTHY & TASTY",
-        "fontFamily": "Montserrat",
-        "fontWeight": "700",
-        "fontSize": 24,
-        "textColor": "#FFFFFF",
-        "backgroundColor": "#E45B48",
-        "paddingTop": 12,
-        "paddingBottom": 12,
-        "paddingLeft": 18,
-        "paddingRight": 18,
-        "borderRadius": 10,
-        "position": { "x": "right-40", "y": 40 }
+        "backgroundColor": "#E60023",
+        "paddingTop": 8,
+        "paddingBottom": 8,
+        "paddingLeft": 16,
+        "paddingRight": 16,
+        "borderRadius": 6,
+        "position": { "x": 24, "y": 24 }
       }
     ]
   },
-
   "limits": {
-    "maxTextLength": 100,
-    "minFontSize": 12,
-    "maxFontSize": 72
-  }
+    "maxTextLength": 150,
+    "minFontSize": 16,
+    "maxFontSize": 120
+  },
+  "availableFonts": [
+    { "name": "Montserrat", "weights": ["400", "700"], "type": "sans-serif" },
+    { "name": "Playfair Display", "weights": ["400", "700"], "type": "serif" },
+    { "name": "Lato", "weights": ["400", "700"], "type": "sans-serif" },
+    { "name": "Open Sans", "weights": ["400", "700"], "type": "sans-serif" },
+    { "name": "Roboto", "weights": ["400", "700"], "type": "sans-serif" },
+    { "name": "Merriweather", "weights": ["400"], "type": "serif" },
+    { "name": "Geom", "weights": ["400", "700", "900"], "type": "sans-serif" },
+    { "name": "Luckiest Guy", "weights": ["400"], "type": "display" },
+    { "name": "Bebas Neue", "weights": ["400"], "type": "display" },
+    { "name": "Yellowtail", "weights": ["400"], "type": "script" },
+    { "name": "DM Serif Display", "weights": ["400"], "type": "display" }
+  ]
 }
