@@ -702,19 +702,25 @@ function createSmartTextOverlay(lines, options = {}) {
     showBackground = true,
     paddingTop = 30,
     paddingBottom = 30,
-    lineSpacing = 10
+    lineSpacing = 10,
+    // Background stroke options
+    backgroundStrokeTopColor = '#000000',
+    backgroundStrokeTopWidth = 0,
+    backgroundStrokeBottomColor = '#000000',
+    backgroundStrokeBottomWidth = 0,
+    lineHeight = 1.2
   } = options;
 
   // Calculate total height needed
-  const line1Height = lines.line1 ? line1FontSize * 1.2 : 0;
-  const line2Height = lines.line2 ? line2FontSize * 1.2 : 0;
-  const line3Height = lines.line3 ? line3FontSize * 1.2 : 0;
+  const line1Height = lines.line1 ? line1FontSize * lineHeight : 0;
+  const line2Height = lines.line2 ? line2FontSize * lineHeight : 0;
+  const line3Height = lines.line3 ? line3FontSize * lineHeight : 0;
   
   const spacing1 = lines.line1 && lines.line2 ? lineSpacing : 0;
   const spacing2 = lines.line2 && lines.line3 ? lineSpacing : 0;
   
   const totalTextHeight = line1Height + line2Height + line3Height + spacing1 + spacing2;
-  const height = totalTextHeight + paddingTop + paddingBottom;
+  const height = totalTextHeight + paddingTop + paddingBottom + backgroundStrokeTopWidth + backgroundStrokeBottomWidth;
 
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext('2d');
@@ -724,12 +730,24 @@ function createSmartTextOverlay(lines, options = {}) {
   if (showBackground) {
     ctx.fillStyle = backgroundColor.includes('rgba') ? backgroundColor : hexToRgba(backgroundColor, 0.6);
     ctx.fillRect(0, 0, width, height);
+    
+    // Background stroke top
+    if (backgroundStrokeTopWidth > 0) {
+      ctx.fillStyle = backgroundStrokeTopColor;
+      ctx.fillRect(0, 0, width, backgroundStrokeTopWidth);
+    }
+    
+    // Background stroke bottom
+    if (backgroundStrokeBottomWidth > 0) {
+      ctx.fillStyle = backgroundStrokeBottomColor;
+      ctx.fillRect(0, height - backgroundStrokeBottomWidth, width, backgroundStrokeBottomWidth);
+    }
   }
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  let currentY = paddingTop;
+  let currentY = paddingTop + backgroundStrokeTopWidth;
 
   // Draw Line 1 (small - top)
   if (lines.line1) {
@@ -881,8 +899,8 @@ app.post('/api/create-pin', async (req, res) => {
       autoShortenTitle = false, // Auto-shorten with Gemini
       autoGenerateTags = true, // Auto-generate tags with Gemini (enabled by default)
       maxTags = 2, // Number of tags to generate (default 2)
-      smartLayout = false, // NEW: Use smart 3-line layout with Gemini
-      smartLayoutOptions = {} // NEW: Options for smart layout (fonts, colors, sizes)
+      smartLayout = true, // Use smart 3-line layout with Gemini (DEFAULT: true)
+      smartLayoutOptions = {} // Options for smart layout (fonts, colors, sizes)
     } = req.body;
 
     // Validate required fields
@@ -977,10 +995,48 @@ app.post('/api/create-pin', async (req, res) => {
     if (showTextOverlay && recipeTitle) {
       // Use smart 3-line layout if available
       if (smartLines) {
+        // Map textOptions to smart layout format (apply to all lines by default)
+        const mappedSmartOptions = {
+          // Font settings from textOptions apply to all lines
+          line1FontFamily: mergedTextOptions.fontFamily,
+          line2FontFamily: mergedTextOptions.fontFamily,
+          line3FontFamily: mergedTextOptions.fontFamily,
+          line1FontWeight: mergedTextOptions.fontWeight || '700',
+          line2FontWeight: mergedTextOptions.fontWeight || '900',
+          line3FontWeight: mergedTextOptions.fontWeight || '700',
+          // Font sizes - scale from base fontSize if provided
+          line1FontSize: mergedTextOptions.fontSize ? Math.round(mergedTextOptions.fontSize * 0.4) : 48,
+          line2FontSize: mergedTextOptions.fontSize || 120,
+          line3FontSize: mergedTextOptions.fontSize ? Math.round(mergedTextOptions.fontSize * 0.47) : 56,
+          // Colors from textOptions
+          line1Color: mergedTextOptions.textColor,
+          line2Color: mergedTextOptions.textColor,
+          line3Color: mergedTextOptions.textColor,
+          // Stroke from textOptions
+          line1StrokeColor: mergedTextOptions.strokeColor,
+          line2StrokeColor: mergedTextOptions.strokeColor,
+          line3StrokeColor: mergedTextOptions.strokeColor,
+          line1StrokeWidth: mergedTextOptions.strokeWidth || 0,
+          line2StrokeWidth: mergedTextOptions.strokeWidth || 3,
+          line3StrokeWidth: mergedTextOptions.strokeWidth || 0,
+          // Background
+          backgroundColor: mergedTextOptions.backgroundColor,
+          paddingTop: mergedTextOptions.paddingTop || 30,
+          paddingBottom: mergedTextOptions.paddingBottom || 30,
+          // Background strokes
+          backgroundStrokeTopColor: mergedTextOptions.backgroundStrokeTopColor,
+          backgroundStrokeTopWidth: mergedTextOptions.backgroundStrokeTopWidth || 0,
+          backgroundStrokeBottomColor: mergedTextOptions.backgroundStrokeBottomColor,
+          backgroundStrokeBottomWidth: mergedTextOptions.backgroundStrokeBottomWidth || 0,
+          // Line height
+          lineHeight: mergedTextOptions.lineHeight || 1.2
+        };
+        
         const smartResult = createSmartTextOverlay(smartLines, {
           width: PINTEREST_WIDTH,
           showBackground: showTextBackground,
-          ...smartLayoutOptions
+          ...mappedSmartOptions,
+          ...smartLayoutOptions // Allow explicit overrides
         });
         
         compositeLayers.push({
