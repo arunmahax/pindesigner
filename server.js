@@ -577,9 +577,250 @@ Generate ${maxTags} category tags (comma-separated):`;
   }
 }
 
+/**
+ * Split a recipe title into smart 3-line layout using Gemini AI
+ * Returns: { line1: "ONE POT GNOCCHI", line2: "CHICKEN", line3: "POT PIE" }
+ */
+async function splitTitleForPin(title) {
+  if (!genAI) {
+    throw new Error('Gemini API not configured. Set GEMINI_API_KEY in .env file');
+  }
+
+  const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+
+  const prompt = `You are a Pinterest pin text designer. Your job is to split recipe titles into 3 lines for maximum visual impact and Pinterest SEO.
+
+LAYOUT RULES:
+- Line 1 (TOP - small): Descriptive prefix (2-4 words) - cooking method, style, or modifier
+- Line 2 (MIDDLE - HUGE): Main food keyword (1-2 words MAX) - the hero ingredient/dish
+- Line 3 (BOTTOM - medium): Recipe type or suffix (1-3 words)
+
+SEO RULES:
+- Line 2 MUST be the most searchable food keyword (CHICKEN, BEEF, PASTA, SOUP, etc.)
+- Use ALL CAPS for output
+- Remove filler words (the, a, an, with, and, for, etc.)
+- Keep it punchy and appetizing
+
+EXAMPLES:
+Input: "One-Pot Gnocchi Chicken Pot Pie: Easy Comfort Food with Chicken and Dumplings"
+Output:
+LINE1: ONE POT GNOCCHI
+LINE2: CHICKEN
+LINE3: POT PIE
+
+Input: "Creamy Marry Me Chicken Soup Recipe - Best Comfort Food"
+Output:
+LINE1: MARRY ME
+LINE2: CHICKEN
+LINE3: SOUP
+
+Input: "Easy Air Fryer Crispy Roasted Potatoes with Garlic"
+Output:
+LINE1: AIR FRYER
+LINE2: ROASTED POTATOES
+LINE3: CRISPY GARLIC
+
+Input: "High Protein Hot Honey Beef Bowl - Spicy Sweet Meal Prep"
+Output:
+LINE1: HIGH PROTEIN
+LINE2: HOT HONEY BEEF BOWL
+LINE3: SPICY SWEET MEAL PREP
+
+Input: "Caramelised Soy Chicken in Garlic Ginger Sauce"
+Output:
+LINE1: CARAMELISED SOY
+LINE2: CHICKEN
+LINE3: IN GARLIC GINGER
+
+Now split this title:
+"${title}"
+
+Output ONLY in this exact format:
+LINE1: [text]
+LINE2: [text]
+LINE3: [text]`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text().trim();
+    
+    // Parse the response
+    const lines = {
+      line1: '',
+      line2: '',
+      line3: ''
+    };
+    
+    const line1Match = text.match(/LINE1:\s*(.+)/i);
+    const line2Match = text.match(/LINE2:\s*(.+)/i);
+    const line3Match = text.match(/LINE3:\s*(.+)/i);
+    
+    if (line1Match) lines.line1 = line1Match[1].trim().toUpperCase();
+    if (line2Match) lines.line2 = line2Match[1].trim().toUpperCase();
+    if (line3Match) lines.line3 = line3Match[1].trim().toUpperCase();
+    
+    // Validate we got something
+    if (!lines.line2) {
+      throw new Error('Failed to extract main keyword');
+    }
+    
+    console.log(`  📝 Smart split: "${lines.line1}" | "${lines.line2}" | "${lines.line3}"`);
+    
+    return lines;
+  } catch (error) {
+    console.error('Gemini title split error:', error.message);
+    throw new Error(`Failed to split title: ${error.message}`);
+  }
+}
+
+/**
+ * Create smart 3-line text overlay with different sizes
+ */
+function createSmartTextOverlay(lines, options = {}) {
+  const {
+    width = PINTEREST_WIDTH,
+    line1FontSize = 48,
+    line2FontSize = 120,
+    line3FontSize = 56,
+    line1FontFamily = 'Montserrat',
+    line2FontFamily = 'Montserrat',
+    line3FontFamily = 'Montserrat',
+    line1FontWeight = '700',
+    line2FontWeight = '900',
+    line3FontWeight = '700',
+    line1Color = '#FFFFFF',
+    line2Color = '#FFFFFF',
+    line3Color = '#FFFFFF',
+    line1StrokeColor = '#000000',
+    line2StrokeColor = '#000000',
+    line3StrokeColor = '#000000',
+    line1StrokeWidth = 0,
+    line2StrokeWidth = 3,
+    line3StrokeWidth = 0,
+    backgroundColor = 'rgba(0, 0, 0, 0.6)',
+    showBackground = true,
+    paddingTop = 30,
+    paddingBottom = 30,
+    lineSpacing = 10
+  } = options;
+
+  // Calculate total height needed
+  const line1Height = lines.line1 ? line1FontSize * 1.2 : 0;
+  const line2Height = lines.line2 ? line2FontSize * 1.2 : 0;
+  const line3Height = lines.line3 ? line3FontSize * 1.2 : 0;
+  
+  const spacing1 = lines.line1 && lines.line2 ? lineSpacing : 0;
+  const spacing2 = lines.line2 && lines.line3 ? lineSpacing : 0;
+  
+  const totalTextHeight = line1Height + line2Height + line3Height + spacing1 + spacing2;
+  const height = totalTextHeight + paddingTop + paddingBottom;
+
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, width, height);
+
+  // Background
+  if (showBackground) {
+    ctx.fillStyle = backgroundColor.includes('rgba') ? backgroundColor : hexToRgba(backgroundColor, 0.6);
+    ctx.fillRect(0, 0, width, height);
+  }
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  let currentY = paddingTop;
+
+  // Draw Line 1 (small - top)
+  if (lines.line1) {
+    ctx.font = buildFontString(line1FontSize, line1FontFamily, line1FontWeight);
+    const y = currentY + line1Height / 2;
+    
+    if (line1StrokeWidth > 0) {
+      ctx.strokeStyle = line1StrokeColor;
+      ctx.lineWidth = line1StrokeWidth;
+      ctx.lineJoin = 'round';
+      ctx.strokeText(lines.line1, width / 2, y);
+    }
+    ctx.fillStyle = line1Color;
+    ctx.fillText(lines.line1, width / 2, y);
+    
+    currentY += line1Height + spacing1;
+  }
+
+  // Draw Line 2 (HUGE - middle)
+  if (lines.line2) {
+    ctx.font = buildFontString(line2FontSize, line2FontFamily, line2FontWeight);
+    const y = currentY + line2Height / 2;
+    
+    if (line2StrokeWidth > 0) {
+      ctx.strokeStyle = line2StrokeColor;
+      ctx.lineWidth = line2StrokeWidth;
+      ctx.lineJoin = 'round';
+      ctx.strokeText(lines.line2, width / 2, y);
+    }
+    ctx.fillStyle = line2Color;
+    ctx.fillText(lines.line2, width / 2, y);
+    
+    currentY += line2Height + spacing2;
+  }
+
+  // Draw Line 3 (medium - bottom)
+  if (lines.line3) {
+    ctx.font = buildFontString(line3FontSize, line3FontFamily, line3FontWeight);
+    const y = currentY + line3Height / 2;
+    
+    if (line3StrokeWidth > 0) {
+      ctx.strokeStyle = line3StrokeColor;
+      ctx.lineWidth = line3StrokeWidth;
+      ctx.lineJoin = 'round';
+      ctx.strokeText(lines.line3, width / 2, y);
+    }
+    ctx.fillStyle = line3Color;
+    ctx.fillText(lines.line3, width / 2, y);
+  }
+
+  return {
+    buffer: canvas.toBuffer('image/png'),
+    height: height,
+    lines: lines
+  };
+}
+
 // ============================================================================
 // API ENDPOINTS
 // ============================================================================
+
+/**
+ * POST /api/split-title - Split a title into smart 3-line layout using Gemini AI
+ */
+app.post('/api/split-title', async (req, res) => {
+  try {
+    const { title } = req.body;
+
+    if (!title) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+
+    if (!genAI) {
+      return res.status(503).json({ error: 'Gemini API not configured' });
+    }
+
+    const lines = await splitTitleForPin(title);
+    
+    console.log(`🎨 Title split: "${title}" → ${JSON.stringify(lines)}`);
+
+    res.json({
+      original: title,
+      lines: lines,
+      success: true
+    });
+
+  } catch (error) {
+    console.error('Error splitting title:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 /**
  * POST /api/shorten-title - Shorten a title using Gemini AI
@@ -639,7 +880,9 @@ app.post('/api/create-pin', async (req, res) => {
       styleOverrides = {},
       autoShortenTitle = false, // Auto-shorten with Gemini
       autoGenerateTags = true, // Auto-generate tags with Gemini (enabled by default)
-      maxTags = 2 // Number of tags to generate (default 2)
+      maxTags = 2, // Number of tags to generate (default 2)
+      smartLayout = false, // NEW: Use smart 3-line layout with Gemini
+      smartLayoutOptions = {} // NEW: Options for smart layout (fonts, colors, sizes)
     } = req.body;
 
     // Validate required fields
@@ -653,8 +896,18 @@ app.post('/api/create-pin', async (req, res) => {
     let recipeTitle = toTitleCase(rawRecipeTitle);
     let titleWasShortened = false;
     let generatedTags = null;
+    let smartLines = null; // For smart layout
     
-    if (autoShortenTitle && recipeTitle && genAI) {
+    // Smart layout mode - split title into 3 lines using Gemini
+    if (smartLayout && recipeTitle && genAI) {
+      try {
+        smartLines = await splitTitleForPin(recipeTitle);
+        console.log(`🎨 Smart layout enabled`);
+      } catch (err) {
+        console.warn(`⚠️  Could not split title for smart layout: ${err.message}`);
+        // Fall back to regular layout
+      }
+    } else if (autoShortenTitle && recipeTitle && genAI) {
       const wordCount = recipeTitle.split(/\s+/).length;
       if (wordCount > MAX_TITLE_WORDS) {
         try {
@@ -722,30 +975,46 @@ app.post('/api/create-pin', async (req, res) => {
 
     // Add text overlay
     if (showTextOverlay && recipeTitle) {
-      let textOverlayHeight = 150;
-      let textResult = createTextOverlay(recipeTitle, {
-        ...mergedTextOptions,
-        width: PINTEREST_WIDTH,
-        height: textOverlayHeight,
-        showBackground: showTextBackground
-      });
-
-      // Expand height if needed
-      if (textResult.needsMoreHeight) {
-        textOverlayHeight = Math.min(textResult.requiredHeight, PINTEREST_HEIGHT * 0.4);
-        textResult = createTextOverlay(recipeTitle, {
+      // Use smart 3-line layout if available
+      if (smartLines) {
+        const smartResult = createSmartTextOverlay(smartLines, {
+          width: PINTEREST_WIDTH,
+          showBackground: showTextBackground,
+          ...smartLayoutOptions
+        });
+        
+        compositeLayers.push({
+          input: smartResult.buffer,
+          top: Math.floor((PINTEREST_HEIGHT - smartResult.height) / 2),
+          left: 0
+        });
+      } else {
+        // Regular single-block text overlay
+        let textOverlayHeight = 150;
+        let textResult = createTextOverlay(recipeTitle, {
           ...mergedTextOptions,
           width: PINTEREST_WIDTH,
           height: textOverlayHeight,
           showBackground: showTextBackground
         });
-      }
 
-      compositeLayers.push({
-        input: textResult.buffer,
-        top: Math.floor((PINTEREST_HEIGHT - textOverlayHeight) / 2),
-        left: 0
-      });
+        // Expand height if needed
+        if (textResult.needsMoreHeight) {
+          textOverlayHeight = Math.min(textResult.requiredHeight, PINTEREST_HEIGHT * 0.4);
+          textResult = createTextOverlay(recipeTitle, {
+            ...mergedTextOptions,
+            width: PINTEREST_WIDTH,
+            height: textOverlayHeight,
+            showBackground: showTextBackground
+          });
+        }
+
+        compositeLayers.push({
+          input: textResult.buffer,
+          top: Math.floor((PINTEREST_HEIGHT - textOverlayHeight) / 2),
+          left: 0
+        });
+      }
     }
 
     // Add title band
@@ -852,6 +1121,12 @@ app.post('/api/create-pin', async (req, res) => {
         used: recipeTitle,
         wasShortened: titleWasShortened
       },
+      smartLayout: smartLines ? {
+        enabled: true,
+        line1: smartLines.line1,
+        line2: smartLines.line2,
+        line3: smartLines.line3
+      } : null,
       tags: generatedTags ? {
         generated: generatedTags,
         count: generatedTags.length
