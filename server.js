@@ -879,7 +879,11 @@ app.post('/api/create-pin', async (req, res) => {
     
     fs.writeFileSync(filePath, finalImage);
     
-    const imageUrl = `http://localhost:${PORT}/uploads/pinterest-pins/${filename}`;
+    // Build URL from request host or BASE_URL env variable
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    const host = process.env.BASE_URL || req.headers['x-forwarded-host'] || req.headers.host || `localhost:${PORT}`;
+    const baseUrl = host.startsWith('http') ? host : `${protocol}://${host}`;
+    const imageUrl = `${baseUrl}/uploads/pinterest-pins/${filename}`;
     console.log(`  ✅ Saved: ${filename}`);
 
     res.json({
