@@ -7,9 +7,6 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
-// Google Generative AI (Gemini)
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
@@ -21,19 +18,6 @@ const PORT = process.env.PORT || config.service.port || 3001;
 // Pinterest pin dimensions from config
 const PINTEREST_WIDTH = config.pinterest?.width || 1000;
 const PINTEREST_HEIGHT = config.pinterest?.height || 2000;
-
-// Gemini AI configuration
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = config.gemini?.model || 'gemini-2.0-flash';
-const MAX_TITLE_WORDS = config.gemini?.maxTitleWords || 6;
-
-let genAI = null;
-if (GEMINI_API_KEY) {
-  genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-  console.log('✅ Gemini AI initialized');
-} else {
-  console.warn('⚠️  GEMINI_API_KEY not set - title shortening disabled');
-}
 
 // Display fonts that only support single weight (no bold/weight variants)
 const DISPLAY_FONTS = [
@@ -473,208 +457,6 @@ function createTextOverlay(text, options = {}) {
 }
 
 /**
- * Shorten a title using Gemini AI to max words while keeping essence
- */
-async function shortenTitleWithGemini(title, maxWords = MAX_TITLE_WORDS) {
-  if (!genAI) {
-    throw new Error('Gemini API not configured. Set GEMINI_API_KEY in .env file');
-  }
-
-  const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
-
-  const prompt = `You are a Pinterest title optimizer. Your task is to shorten recipe/food titles for Pinterest pins.
-
-Rules:
-1. Maximum ${maxWords} words (STRICT - never exceed)
-2. Keep the most important/appetizing words
-3. Maintain the food item and key descriptor (e.g., "Crispy", "Creamy", "Garlic")
-4. Remove filler words like "with", "and", "the", "a", "simple", "easy", "best"
-5. Output ONLY the shortened title, nothing else
-6. Keep it catchy and appetizing
-7. Use Title Case
-
-Examples:
-- "Crispy Italian Chicken with Garlic Butter Sauce – Simple Chicken Breast Dinner" → "Crispy Italian Garlic Butter Chicken"
-- "The Best Ever Homemade Chocolate Chip Cookies Recipe" → "Best Homemade Chocolate Chip Cookies"
-- "Easy 30-Minute Creamy Tuscan Shrimp Pasta Recipe" → "Creamy Tuscan Shrimp Pasta"
-- "Simple and Delicious Honey Garlic Glazed Salmon" → "Honey Garlic Glazed Salmon"
-
-Now shorten this title (max ${maxWords} words):
-"${title}"`;
-
-  try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const shortenedTitle = response.text().trim().replace(/^["']|["']$/g, '');
-    
-    // Verify word count
-    const wordCount = shortenedTitle.split(/\s+/).length;
-    
-    if (wordCount > maxWords) {
-      // If still too long, take first maxWords
-      return shortenedTitle.split(/\s+/).slice(0, maxWords).join(' ');
-    }
-    
-    return shortenedTitle;
-  } catch (error) {
-    console.error('Gemini API error:', error.message);
-    throw new Error(`Failed to shorten title: ${error.message}`);
-  }
-}
-
-/**
- * Generate Pinterest tags using Gemini AI based on recipe title
- */
-async function generateTagsWithGemini(title, maxTags = 2) {
-  if (!genAI) {
-    throw new Error('Gemini API not configured. Set GEMINI_API_KEY in .env file');
-  }
-
-  const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
-
-  const prompt = `You are a Pinterest recipe category expert. Generate ${maxTags} recipe CATEGORY tags based on the recipe title.
-
-Rules:
-1. Maximum 3 words per tag
-2. Focus on recipe CATEGORIES like meal type, difficulty, diet, or time
-3. Common categories: "Easy Dinner", "Quick Recipe", "Healthy Meal", "High Protein", "Weeknight Dinner", "Budget Friendly", "Family Meal", "30 Minute Recipe"
-4. Output ONLY the category tags separated by commas
-5. Use Title Case
-6. Be specific to the recipe ingredients and style
-
-Examples:
-- "Crispy Italian Chicken" → "Easy Dinner, High Protein"
-- "Quick Pasta Recipe" → "Quick Recipe, Weeknight Dinner"
-- "Healthy Salmon Bowl" → "Healthy Meal, High Protein"
-
-Recipe Title: "${title}"
-
-Generate ${maxTags} category tags (comma-separated):`;
-
-  try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const tagsText = response.text().trim();
-    
-    // Parse comma-separated tags
-    const tags = tagsText
-      .split(',')
-      .map(tag => tag.trim().replace(/^["']|["']$/g, ''))
-      .filter(tag => tag.length > 0)
-      .slice(0, maxTags);
-    
-    // Verify word count for each tag
-    const validTags = tags.filter(tag => tag.split(/\s+/).length <= 3);
-    
-    if (validTags.length === 0) {
-      throw new Error('Generated tags exceeded word limit');
-    }
-    
-    return validTags;
-  } catch (error) {
-    console.error('Gemini tag generation error:', error.message);
-    throw error;
-  }
-}
-
-/**
- * Split a recipe title into smart 3-line layout using Gemini AI
- * Returns: { line1: "ONE POT GNOCCHI", line2: "CHICKEN", line3: "POT PIE" }
- */
-async function splitTitleForPin(title) {
-  if (!genAI) {
-    throw new Error('Gemini API not configured. Set GEMINI_API_KEY in .env file');
-  }
-
-  const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
-
-  const prompt = `You are a Pinterest pin text designer. Your job is to split recipe titles into 3 lines for maximum visual impact and Pinterest SEO.
-
-LAYOUT RULES:
-- Line 1 (TOP - small): Descriptive prefix (2-4 words) - cooking method, style, or modifier
-- Line 2 (MIDDLE - HUGE): Main food keyword (1-2 words MAX) - the hero ingredient/dish
-- Line 3 (BOTTOM - medium): Recipe type or suffix (1-3 words)
-
-SEO RULES:
-- Line 2 MUST be the most searchable food keyword (CHICKEN, BEEF, PASTA, SOUP, etc.)
-- Use ALL CAPS for output
-- Remove filler words (the, a, an, with, and, for, etc.)
-- Keep it punchy and appetizing
-
-EXAMPLES:
-Input: "One-Pot Gnocchi Chicken Pot Pie: Easy Comfort Food with Chicken and Dumplings"
-Output:
-LINE1: ONE POT GNOCCHI
-LINE2: CHICKEN
-LINE3: POT PIE
-
-Input: "Creamy Marry Me Chicken Soup Recipe - Best Comfort Food"
-Output:
-LINE1: MARRY ME
-LINE2: CHICKEN
-LINE3: SOUP
-
-Input: "Easy Air Fryer Crispy Roasted Potatoes with Garlic"
-Output:
-LINE1: AIR FRYER
-LINE2: ROASTED POTATOES
-LINE3: CRISPY GARLIC
-
-Input: "High Protein Hot Honey Beef Bowl - Spicy Sweet Meal Prep"
-Output:
-LINE1: HIGH PROTEIN
-LINE2: HOT HONEY BEEF BOWL
-LINE3: SPICY SWEET MEAL PREP
-
-Input: "Caramelised Soy Chicken in Garlic Ginger Sauce"
-Output:
-LINE1: CARAMELISED SOY
-LINE2: CHICKEN
-LINE3: IN GARLIC GINGER
-
-Now split this title:
-"${title}"
-
-Output ONLY in this exact format:
-LINE1: [text]
-LINE2: [text]
-LINE3: [text]`;
-
-  try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text().trim();
-    
-    // Parse the response
-    const lines = {
-      line1: '',
-      line2: '',
-      line3: ''
-    };
-    
-    const line1Match = text.match(/LINE1:\s*(.+)/i);
-    const line2Match = text.match(/LINE2:\s*(.+)/i);
-    const line3Match = text.match(/LINE3:\s*(.+)/i);
-    
-    if (line1Match) lines.line1 = line1Match[1].trim().toUpperCase();
-    if (line2Match) lines.line2 = line2Match[1].trim().toUpperCase();
-    if (line3Match) lines.line3 = line3Match[1].trim().toUpperCase();
-    
-    // Validate we got something
-    if (!lines.line2) {
-      throw new Error('Failed to extract main keyword');
-    }
-    
-    console.log(`  📝 Smart split: "${lines.line1}" | "${lines.line2}" | "${lines.line3}"`);
-    
-    return lines;
-  } catch (error) {
-    console.error('Gemini title split error:', error.message);
-    throw new Error(`Failed to split title: ${error.message}`);
-  }
-}
-
-/**
  * Create smart 3-line text overlay with different sizes
  * Auto-scales text to fit within canvas width
  */
@@ -850,79 +632,22 @@ function createSmartTextOverlay(lines, options = {}) {
 // ============================================================================
 
 /**
- * POST /api/split-title - Split a title into smart 3-line layout using Gemini AI
- */
-app.post('/api/split-title', async (req, res) => {
-  try {
-    const { title } = req.body;
-
-    if (!title) {
-      return res.status(400).json({ error: 'Title is required' });
-    }
-
-    if (!genAI) {
-      return res.status(503).json({ error: 'Gemini API not configured' });
-    }
-
-    const lines = await splitTitleForPin(title);
-    
-    console.log(`🎨 Title split: "${title}" → ${JSON.stringify(lines)}`);
-
-    res.json({
-      original: title,
-      lines: lines,
-      success: true
-    });
-
-  } catch (error) {
-    console.error('Error splitting title:', error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/**
- * POST /api/shorten-title - Shorten a title using Gemini AI
- */
-app.post('/api/shorten-title', async (req, res) => {
-  try {
-    const { title, maxWords } = req.body;
-
-    if (!title) {
-      return res.status(400).json({ error: 'Title is required' });
-    }
-
-    // Check if title is already short enough
-    const wordCount = title.split(/\s+/).length;
-    const targetWords = maxWords || MAX_TITLE_WORDS;
-    
-    if (wordCount <= targetWords) {
-      return res.json({
-        original: title,
-        shortened: title,
-        wasShortened: false,
-        wordCount: wordCount
-      });
-    }
-
-    const shortened = await shortenTitleWithGemini(title, targetWords);
-    
-    console.log(`📝 Title shortened: "${title}" → "${shortened}"`);
-
-    res.json({
-      original: title,
-      shortened: shortened,
-      wasShortened: true,
-      wordCount: shortened.split(/\s+/).length
-    });
-
-  } catch (error) {
-    console.error('Error shortening title:', error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/**
  * POST /api/create-pin - Create a Pinterest pin
+ * 
+ * For smart 3-line layout, provide smartLayoutLines: { line1, line2, line3 }
+ * Example:
+ * {
+ *   "topImageUrl": "...",
+ *   "bottomImageUrl": "...",
+ *   "recipeTitle": "My Recipe Title",
+ *   "smartLayoutLines": {
+ *     "line1": "EASY QUESO",
+ *     "line2": "CHICKEN ENCHILADAS",
+ *     "line3": "CHEESY BAKE"
+ *   },
+ *   "textOptions": { ... },
+ *   "smartLayoutOptions": { line1FontSize: 80, line2FontSize: 150, ... }
+ * }
  */
 app.post('/api/create-pin', async (req, res) => {
   try {
@@ -936,10 +661,7 @@ app.post('/api/create-pin', async (req, res) => {
       titleBand = null,
       topTags = null,
       styleOverrides = {},
-      autoShortenTitle = false, // Auto-shorten with Gemini
-      autoGenerateTags = true, // Auto-generate tags with Gemini (enabled by default)
-      maxTags = 2, // Number of tags to generate (default 2)
-      smartLayout = true, // Use smart 3-line layout with Gemini (DEFAULT: true)
+      smartLayoutLines = null, // { line1: "...", line2: "...", line3: "..." }
       smartLayoutOptions = {} // Options for smart layout (fonts, colors, sizes)
     } = req.body;
 
@@ -950,48 +672,23 @@ app.post('/api/create-pin', async (req, res) => {
       });
     }
 
-    // Process title - optionally shorten with Gemini
+    // Process title
     let recipeTitle = toTitleCase(rawRecipeTitle);
-    let titleWasShortened = false;
-    let generatedTags = null;
-    let smartLines = null; // For smart layout
     
-    // Smart layout mode - split title into 3 lines using Gemini
-    if (smartLayout && recipeTitle && genAI) {
-      try {
-        smartLines = await splitTitleForPin(recipeTitle);
-        console.log(`🎨 Smart layout enabled`);
-      } catch (err) {
-        console.warn(`⚠️  Could not split title for smart layout: ${err.message}`);
-        // Fall back to regular layout
-      }
-    } else if (autoShortenTitle && recipeTitle && genAI) {
-      const wordCount = recipeTitle.split(/\s+/).length;
-      if (wordCount > MAX_TITLE_WORDS) {
-        try {
-          const shortened = await shortenTitleWithGemini(recipeTitle);
-          console.log(`📝 Auto-shortened: "${recipeTitle}" → "${shortened}"`);
-          recipeTitle = shortened;
-          titleWasShortened = true;
-        } catch (err) {
-          console.warn(`⚠️  Could not auto-shorten title: ${err.message}`);
-        }
-      }
+    // Use smart layout lines if provided
+    let smartLines = null;
+    if (smartLayoutLines && (smartLayoutLines.line1 || smartLayoutLines.line2 || smartLayoutLines.line3)) {
+      smartLines = {
+        line1: (smartLayoutLines.line1 || '').toUpperCase(),
+        line2: (smartLayoutLines.line2 || '').toUpperCase(),
+        line3: (smartLayoutLines.line3 || '').toUpperCase()
+      };
+      console.log(`🎨 Smart layout: "${smartLines.line1}" | "${smartLines.line2}" | "${smartLines.line3}"`);
     }
 
-    // Generate tags with Gemini if requested
-    if (autoGenerateTags && recipeTitle && genAI) {
-      try {
-        generatedTags = await generateTagsWithGemini(recipeTitle, maxTags);
-        console.log(`🏷️  Generated tags: ${generatedTags.join(', ')}`);
-      } catch (err) {
-        console.warn(`⚠️  Could not generate tags: ${err.message}`);
-      }
-    }
-
-    if (showTextOverlay && !recipeTitle) {
+    if (showTextOverlay && !recipeTitle && !smartLines) {
       return res.status(400).json({
-        error: 'recipeTitle is required when showTextOverlay is true'
+        error: 'recipeTitle or smartLayoutLines is required when showTextOverlay is true'
       });
     }
 
@@ -1032,7 +729,7 @@ app.post('/api/create-pin', async (req, res) => {
     ];
 
     // Add text overlay
-    if (showTextOverlay && recipeTitle) {
+    if (showTextOverlay && (recipeTitle || smartLines)) {
       // Use smart 3-line layout if available
       if (smartLines) {
         // DEBUG: Log incoming options
@@ -1138,43 +835,6 @@ app.post('/api/create-pin', async (req, res) => {
       });
     }
 
-    // Add AI-generated category tags at the top
-    if (generatedTags && generatedTags.length > 0) {
-      const tagColors = ['#E60023', '#0073B1', '#7C3AED', '#DC2626', '#059669', '#EA580C', '#DB2777'];
-      const tagSpacing = 20; // Space between tags
-      const topMargin = 40; // Margin from top edge
-      let currentX = 40; // Start from left with margin
-      const tagY = topMargin; // Fixed Y position at top
-      
-      for (let i = 0; i < generatedTags.length; i++) {
-        const tagText = generatedTags[i];
-        const randomColor = tagColors[Math.floor(Math.random() * tagColors.length)];
-        
-        const tag = createTag({
-          text: tagText.toUpperCase(),
-          fontFamily: 'Montserrat',
-          fontWeight: '700',
-          fontSize: 42,
-          textColor: '#FFFFFF',
-          backgroundColor: randomColor,
-          paddingTop: 24,
-          paddingBottom: 24,
-          paddingLeft: 42,
-          paddingRight: 42,
-          borderRadius: 45
-        });
-        
-        // Position tags horizontally at the top
-        compositeLayers.push({
-          input: tag.canvas.toBuffer('image/png'),
-          top: tagY,
-          left: currentX
-        });
-        
-        currentX += tag.width + tagSpacing; // Move to the right for next tag
-      }
-    }
-
     // Add manual tags (if provided)
     const tagsToRender = topTags?.length > 0 ? topTags : (styleOverrides.topTags || []);
     
@@ -1227,20 +887,15 @@ app.post('/api/create-pin', async (req, res) => {
       imageUrl,
       filename,
       dimensions: { width: PINTEREST_WIDTH, height: PINTEREST_HEIGHT },
-      title: {
+      title: recipeTitle ? {
         original: toTitleCase(rawRecipeTitle),
-        used: recipeTitle,
-        wasShortened: titleWasShortened
-      },
+        used: recipeTitle
+      } : null,
       smartLayout: smartLines ? {
         enabled: true,
         line1: smartLines.line1,
         line2: smartLines.line2,
         line3: smartLines.line3
-      } : null,
-      tags: generatedTags ? {
-        generated: generatedTags,
-        count: generatedTags.length
       } : null
     });
 

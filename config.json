@@ -1,17 +1,13 @@
 {
   "service": {
     "name": "Pinterest Pin Generator",
-    "version": "2.1.0",
+    "version": "2.2.0",
     "port": 3001
   },
   "pinterest": {
     "width": 1000,
     "height": 2000,
     "aspectRatio": "1:2"
-  },
-  "gemini": {
-    "model": "gemini-2.0-flash",
-    "maxTitleWords": 6
   },
   "defaults": {
     "textOptions": {

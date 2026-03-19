@@ -30,19 +30,12 @@ In Coolify application settings:
 - **Dockerfile Location**: `Dockerfile` (root of repo)
 - **Port**: `3001`
 
-### 4. Set Environment Variables
-
-Add these environment variables in Coolify:
+### 4. Set Environment Variables (Optional)
 
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `PORT` | No | Server port (default: 3001) |
-| `GEMINI_API_KEY` | Yes* | Google Gemini API key for smart titles |
 | `NODE_ENV` | No | Set to `production` |
-
-*Required for AI-powered title shortening and smart layout features
-
-Get your Gemini API key: https://aistudio.google.com/app/apikey
 
 ### 5. Configure Domain (Optional)
 
@@ -66,7 +59,7 @@ Once deployed, your service will be available at your configured domain or IP.
 GET https://your-domain.com/api/health
 ```
 
-### Create Pin
+### Create Pin (Smart 3-Line Layout)
 ```
 POST https://your-domain.com/api/create-pin
 Content-Type: application/json
@@ -74,9 +67,32 @@ Content-Type: application/json
 {
   "topImageUrl": "https://example.com/image1.jpg",
   "bottomImageUrl": "https://example.com/image2.jpg",
-  "recipeTitle": "Crispy Garlic Butter Chicken",
-  "smartLayout": true,
-  "autoGenerateTags": true
+  "recipeTitle": "Easy Queso Chicken Enchiladas Bake",
+  "smartLayoutLines": {
+    "line1": "EASY QUESO",
+    "line2": "CHICKEN ENCHILADAS",
+    "line3": "CHEESY BAKE"
+  },
+  "textOptions": {
+    "fontFamily": "Geom",
+    "lineHeight": 1.05,
+    "strokeColor": "#040000",
+    "strokeWidth": 8,
+    "textColor": "#FFF3E0",
+    "backgroundColor": "rgba(29, 233, 182, 0.55)",
+    "backgroundStrokeTopColor": "#B2FF59",
+    "backgroundStrokeTopWidth": 12,
+    "backgroundStrokeBottomColor": "#B2FF59",
+    "backgroundStrokeBottomWidth": 12
+  },
+  "smartLayoutOptions": {
+    "line1FontSize": 80,
+    "line2FontSize": 150,
+    "line3FontSize": 90,
+    "line1FontWeight": "700",
+    "line2FontWeight": "900",
+    "line3FontWeight": "700"
+  }
 }
 ```
 
@@ -109,13 +125,26 @@ GET https://your-domain.com/api/docs
   "topImageUrl": "{{ $json.topImage }}",
   "bottomImageUrl": "{{ $json.bottomImage }}",
   "recipeTitle": "{{ $json.title }}",
-  "smartLayout": true,
-  "autoGenerateTags": true,
+  "smartLayoutLines": {
+    "line1": "{{ $json.line1 }}",
+    "line2": "{{ $json.line2 }}",
+    "line3": "{{ $json.line3 }}"
+  },
   "textOptions": {
-    "fontFamily": "Montserrat",
-    "fontSize": 120,
-    "textColor": "#FFFFFF",
-    "backgroundColor": "rgba(0, 0, 0, 0.7)"
+    "fontFamily": "Geom",
+    "strokeColor": "#040000",
+    "strokeWidth": 8,
+    "textColor": "#FFF3E0",
+    "backgroundColor": "rgba(29, 233, 182, 0.55)",
+    "backgroundStrokeTopColor": "#B2FF59",
+    "backgroundStrokeTopWidth": 12,
+    "backgroundStrokeBottomColor": "#B2FF59",
+    "backgroundStrokeBottomWidth": 12
+  },
+  "smartLayoutOptions": {
+    "line1FontSize": 80,
+    "line2FontSize": 150,
+    "line3FontSize": 90
   }
 }
 ```
@@ -132,23 +161,18 @@ The API returns:
 ```json
 {
   "success": true,
-  "imageUrl": "https://your-domain.com/uploads/pinterest-pins/Crispy_Garlic_Butter_Chicken_1234567890.png",
-  "filename": "Crispy_Garlic_Butter_Chicken_1234567890.png",
+  "imageUrl": "https://your-domain.com/uploads/pinterest-pins/Easy_Queso_Chicken_1234567890.png",
+  "filename": "Easy_Queso_Chicken_1234567890.png",
   "dimensions": { "width": 1000, "height": 2000 },
   "title": {
-    "original": "Crispy Garlic Butter Chicken",
-    "used": "Crispy Garlic Butter Chicken",
-    "wasShortened": false
+    "original": "Easy Queso Chicken Enchiladas Bake",
+    "used": "Easy Queso Chicken Enchiladas Bake"
   },
   "smartLayout": {
     "enabled": true,
-    "line1": "CRISPY",
-    "line2": "GARLIC BUTTER",
-    "line3": "CHICKEN"
-  },
-  "tags": {
-    "generated": ["Easy Dinner", "High Protein"],
-    "count": 2
+    "line1": "EASY QUESO",
+    "line2": "CHICKEN ENCHILADAS",
+    "line3": "CHEESY BAKE"
   }
 }
 ```
@@ -234,6 +258,11 @@ curl -X POST https://your-domain.com/api/create-pin \
   -d '{
     "topImageUrl": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800",
     "bottomImageUrl": "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800",
-    "recipeTitle": "Delicious Healthy Bowl Recipe"
+    "recipeTitle": "Healthy Bowl Recipe",
+    "smartLayoutLines": {
+      "line1": "DELICIOUS",
+      "line2": "HEALTHY BOWL",
+      "line3": "RECIPE"
+    }
   }'
 ```
