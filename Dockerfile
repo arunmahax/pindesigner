@@ -45,9 +45,12 @@ EXPOSE 3001
 ENV NODE_ENV=production
 ENV PORT=3001
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3001/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
+# Install curl for healthcheck
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+# Health check using curl (more reliable in containers)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-3001}/api/health || exit 1
 
 # Run the application
 CMD ["node", "server.js"]
