@@ -676,19 +676,20 @@ LINE3: [text]`;
 
 /**
  * Create smart 3-line text overlay with different sizes
+ * Auto-scales text to fit within canvas width
  */
 function createSmartTextOverlay(lines, options = {}) {
   const {
     width = PINTEREST_WIDTH,
-    line1FontSize = 48,
+    line1FontSize = 70,
     line2FontSize = 120,
-    line3FontSize = 56,
+    line3FontSize = 80,
     line1FontFamily = 'Montserrat',
     line2FontFamily = 'Montserrat',
     line3FontFamily = 'Montserrat',
-    line1FontWeight = '700',
+    line1FontWeight = '400',
     line2FontWeight = '900',
-    line3FontWeight = '700',
+    line3FontWeight = '400',
     line1Color = '#FFFFFF',
     line2Color = '#FFFFFF',
     line3Color = '#FFFFFF',
@@ -702,19 +703,53 @@ function createSmartTextOverlay(lines, options = {}) {
     showBackground = true,
     paddingTop = 30,
     paddingBottom = 30,
+    paddingLeft = 40,
+    paddingRight = 40,
     lineSpacing = 10,
     // Background stroke options
     backgroundStrokeTopColor = '#000000',
     backgroundStrokeTopWidth = 0,
     backgroundStrokeBottomColor = '#000000',
     backgroundStrokeBottomWidth = 0,
-    lineHeight = 1.2
+    lineHeight = 1.2,
+    minFontSize = 60 // Minimum font size for auto-scaling
   } = options;
 
-  // Calculate total height needed
-  const line1Height = lines.line1 ? line1FontSize * lineHeight : 0;
-  const line2Height = lines.line2 ? line2FontSize * lineHeight : 0;
-  const line3Height = lines.line3 ? line3FontSize * lineHeight : 0;
+  // Helper function to calculate font size that fits width
+  const measureCanvas = createCanvas(width, 100);
+  const measureCtx = measureCanvas.getContext('2d');
+  const maxTextWidth = width - paddingLeft - paddingRight;
+  
+  function fitTextToWidth(text, targetFontSize, fontFamily, fontWeight) {
+    if (!text) return targetFontSize;
+    
+    let fontSize = targetFontSize;
+    measureCtx.font = buildFontString(fontSize, fontFamily, fontWeight);
+    let textWidth = measureCtx.measureText(text).width;
+    
+    // Reduce font size until text fits
+    while (textWidth > maxTextWidth && fontSize > minFontSize) {
+      fontSize -= 2;
+      measureCtx.font = buildFontString(fontSize, fontFamily, fontWeight);
+      textWidth = measureCtx.measureText(text).width;
+    }
+    
+    if (fontSize !== targetFontSize) {
+      console.log(`  📏 Auto-scaled "${text.substring(0, 20)}..." from ${targetFontSize}px to ${fontSize}px`);
+    }
+    
+    return fontSize;
+  }
+  
+  // Calculate actual font sizes (auto-scaled to fit)
+  const actualLine1FontSize = fitTextToWidth(lines.line1, line1FontSize, line1FontFamily, line1FontWeight);
+  const actualLine2FontSize = fitTextToWidth(lines.line2, line2FontSize, line2FontFamily, line2FontWeight);
+  const actualLine3FontSize = fitTextToWidth(lines.line3, line3FontSize, line3FontFamily, line3FontWeight);
+
+  // Calculate total height needed with actual font sizes
+  const line1Height = lines.line1 ? actualLine1FontSize * lineHeight : 0;
+  const line2Height = lines.line2 ? actualLine2FontSize * lineHeight : 0;
+  const line3Height = lines.line3 ? actualLine3FontSize * lineHeight : 0;
   
   const spacing1 = lines.line1 && lines.line2 ? lineSpacing : 0;
   const spacing2 = lines.line2 && lines.line3 ? lineSpacing : 0;
@@ -749,9 +784,9 @@ function createSmartTextOverlay(lines, options = {}) {
 
   let currentY = paddingTop + backgroundStrokeTopWidth;
 
-  // Draw Line 1 (small - top)
+  // Draw Line 1 (small - top) - using auto-scaled font size
   if (lines.line1) {
-    ctx.font = buildFontString(line1FontSize, line1FontFamily, line1FontWeight);
+    ctx.font = buildFontString(actualLine1FontSize, line1FontFamily, line1FontWeight);
     const y = currentY + line1Height / 2;
     
     if (line1StrokeWidth > 0) {
@@ -766,9 +801,9 @@ function createSmartTextOverlay(lines, options = {}) {
     currentY += line1Height + spacing1;
   }
 
-  // Draw Line 2 (HUGE - middle)
+  // Draw Line 2 (HUGE - middle) - using auto-scaled font size
   if (lines.line2) {
-    ctx.font = buildFontString(line2FontSize, line2FontFamily, line2FontWeight);
+    ctx.font = buildFontString(actualLine2FontSize, line2FontFamily, line2FontWeight);
     const y = currentY + line2Height / 2;
     
     if (line2StrokeWidth > 0) {
@@ -783,9 +818,9 @@ function createSmartTextOverlay(lines, options = {}) {
     currentY += line2Height + spacing2;
   }
 
-  // Draw Line 3 (medium - bottom)
+  // Draw Line 3 (medium - bottom) - using auto-scaled font size
   if (lines.line3) {
-    ctx.font = buildFontString(line3FontSize, line3FontFamily, line3FontWeight);
+    ctx.font = buildFontString(actualLine3FontSize, line3FontFamily, line3FontWeight);
     const y = currentY + line3Height / 2;
     
     if (line3StrokeWidth > 0) {
@@ -801,7 +836,12 @@ function createSmartTextOverlay(lines, options = {}) {
   return {
     buffer: canvas.toBuffer('image/png'),
     height: height,
-    lines: lines
+    lines: lines,
+    actualFontSizes: {
+      line1: actualLine1FontSize,
+      line2: actualLine2FontSize,
+      line3: actualLine3FontSize
+    }
   };
 }
 
@@ -995,6 +1035,11 @@ app.post('/api/create-pin', async (req, res) => {
     if (showTextOverlay && recipeTitle) {
       // Use smart 3-line layout if available
       if (smartLines) {
+        // DEBUG: Log incoming options
+        console.log(`\n📊 DEBUG - Incoming textOptions:`, JSON.stringify(textOptions, null, 2));
+        console.log(`📊 DEBUG - Incoming smartLayoutOptions:`, JSON.stringify(smartLayoutOptions, null, 2));
+        console.log(`📊 DEBUG - Merged textOptions:`, JSON.stringify(mergedTextOptions, null, 2));
+        
         // Map textOptions to smart layout format (apply to all lines by default)
         const mappedSmartOptions = {
           // Font settings from textOptions apply to all lines
@@ -1032,12 +1077,22 @@ app.post('/api/create-pin', async (req, res) => {
           lineHeight: mergedTextOptions.lineHeight || 1.2
         };
         
-        const smartResult = createSmartTextOverlay(smartLines, {
+        const finalSmartOptions = {
           width: PINTEREST_WIDTH,
           showBackground: showTextBackground,
           ...mappedSmartOptions,
           ...smartLayoutOptions // Allow explicit overrides
-        });
+        };
+        
+        // DEBUG: Log final options being used
+        console.log(`📊 DEBUG - Final smart layout options:`);
+        console.log(`   line1: size=${finalSmartOptions.line1FontSize}, family=${finalSmartOptions.line1FontFamily}, weight=${finalSmartOptions.line1FontWeight}`);
+        console.log(`   line2: size=${finalSmartOptions.line2FontSize}, family=${finalSmartOptions.line2FontFamily}, weight=${finalSmartOptions.line2FontWeight}`);
+        console.log(`   line3: size=${finalSmartOptions.line3FontSize}, family=${finalSmartOptions.line3FontFamily}, weight=${finalSmartOptions.line3FontWeight}`);
+        console.log(`   background: ${finalSmartOptions.backgroundColor}`);
+        console.log(`   strokes: top=${finalSmartOptions.backgroundStrokeTopWidth}px ${finalSmartOptions.backgroundStrokeTopColor}, bottom=${finalSmartOptions.backgroundStrokeBottomWidth}px ${finalSmartOptions.backgroundStrokeBottomColor}\n`);
+        
+        const smartResult = createSmartTextOverlay(smartLines, finalSmartOptions);
         
         compositeLayers.push({
           input: smartResult.buffer,
@@ -1274,10 +1329,13 @@ app.get('/api/docs', (req, res) => {
 // SERVER STARTUP
 // ============================================================================
 
-const server = app.listen(PORT, () => {
+// Bind to 0.0.0.0 for container/Docker deployments
+const HOST = process.env.HOST || '0.0.0.0';
+
+const server = app.listen(PORT, HOST, () => {
   console.log(`\n🚀 ${config.service.name} v${config.service.version}`);
-  console.log(`   📍 http://localhost:${PORT}`);
-  console.log(`   📖 Docs: http://localhost:${PORT}/api/docs`);
+  console.log(`   📍 http://${HOST}:${PORT}`);
+  console.log(`   📖 Docs: http://${HOST}:${PORT}/api/docs`);
   console.log(`   📐 Pin size: ${PINTEREST_WIDTH}x${PINTEREST_HEIGHT}px\n`);
 });
 
