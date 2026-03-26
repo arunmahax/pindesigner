@@ -431,10 +431,18 @@ function autoGenerateTags(title, maxTags = 2) {
 
 /**
  * Build tag objects for rendering
+ * Tag 0 (orange): top-left
+ * Tag 1 (green): top-right
  */
 function buildTagObjects(tagTexts, colors = null) {
   const defaultColors = ['#FF6B35', '#4CAF50', '#E60023', '#0073B1', '#7C3AED', '#059669'];
   const tagColors = colors || defaultColors;
+  
+  // Position tags: first at top-left, second at top-right
+  const positions = [
+    { x: 30, y: 30 },           // Tag 0: top-left (orange)
+    { x: 'right-30', y: 30 }    // Tag 1: top-right (green)
+  ];
   
   return tagTexts.map((text, index) => ({
     text: text,
@@ -448,7 +456,7 @@ function buildTagObjects(tagTexts, colors = null) {
     paddingLeft: 24,
     paddingRight: 24,
     borderRadius: 25,
-    position: { x: 30 + (index * 200), y: 30 }
+    position: positions[index] || { x: 30, y: 30 }
   }));
 }
 
