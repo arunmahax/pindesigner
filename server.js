@@ -250,21 +250,24 @@ function toTitleCase(str) {
 function autoSplitTitle(title) {
   if (!title) return { line1: '', line2: '', line3: '' };
   
-  // Clean up the title - remove common suffixes and clean punctuation
+  // Clean up the title - remove common suffixes, clean punctuation, and remove filler phrases
   let cleaned = title
-    .replace(/[-–—:]/g, ' ')
-    .replace(/\s+(recipe|recipes|dish|meal|dinner|lunch|breakfast|idea|ideas)$/i, '')
+    .replace(/[-–—:,]/g, ' ')
+    .replace(/\s+(recipe|recipes|dish|meal|dinner|lunch|breakfast|idea|ideas)s?\s*/gi, ' ')
+    .replace(/\b(a|an|the|with|and|in|on|for|to|of|best|easy|simple|quick|delicious|homemade|perfect|ultimate|amazing|great|tasty|yummy)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim()
     .toUpperCase();
   
   const words = cleaned.split(' ').filter(w => w.length > 0);
   
-  // Remove filler words for main keyword detection
-  const fillerWords = ['THE', 'A', 'AN', 'WITH', 'AND', 'IN', 'ON', 'FOR', 'TO', 'OF', 'BEST', 'EASY', 'SIMPLE', 'QUICK', 'DELICIOUS', 'HOMEMADE', 'PERFECT', 'ULTIMATE'];
-  
   // Food keywords that should be emphasized (line 2)
-  const foodKeywords = ['CHICKEN', 'BEEF', 'PORK', 'FISH', 'SALMON', 'SHRIMP', 'PASTA', 'RICE', 'SOUP', 'STEW', 'SALAD', 'CAKE', 'PIE', 'BREAD', 'COOKIE', 'COOKIES', 'BOWL', 'TACOS', 'BURGER', 'PIZZA', 'CURRY', 'NOODLES', 'WINGS', 'RIBS', 'STEAK', 'ENCHILADAS', 'CASSEROLE', 'SANDWICH', 'WRAP', 'QUESADILLA', 'MEATBALLS', 'LASAGNA', 'CHILI', 'GNOCCHI', 'POTATOES', 'VEGETABLES'];
+  const foodKeywords = ['CHICKEN', 'BEEF', 'PORK', 'FISH', 'SALMON', 'SHRIMP', 'PASTA', 'RICE', 'SOUP', 'STEW', 'SALAD', 'CAKE', 'PIE', 'BREAD', 'COOKIE', 'COOKIES', 'BOWL', 'TACOS', 'BURGER', 'PIZZA', 'CURRY', 'NOODLES', 'WINGS', 'RIBS', 'STEAK', 'ENCHILADAS', 'CASSEROLE', 'SANDWICH', 'WRAP', 'QUESADILLA', 'MEATBALLS', 'LASAGNA', 'CHILI', 'GNOCCHI', 'POTATOES', 'VEGETABLES', 'QUESO', 'BAKE', 'ROAST'];
+  
+  // Max words per line
+  const MAX_LINE1_WORDS = 3;
+  const MAX_LINE2_WORDS = 2;
+  const MAX_LINE3_WORDS = 3;
   
   // Find the main food keyword
   let mainKeywordIndex = -1;
@@ -282,39 +285,56 @@ function autoSplitTitle(title) {
   
   if (mainKeywordIndex >= 0) {
     // Found a food keyword - use it as line 2
-    line1 = words.slice(0, mainKeywordIndex).join(' ');
-    line2 = mainKeyword;
-    line3 = words.slice(mainKeywordIndex + 1).join(' ');
+    const beforeWords = words.slice(0, mainKeywordIndex);
+    const afterWords = words.slice(mainKeywordIndex + 1);
     
-    // If line1 is empty, try to move some words from line3
+    // Line 1: words before the main keyword (max 3 words)
+    line1 = beforeWords.slice(-MAX_LINE1_WORDS).join(' ');
+    
+    // Line 2: main keyword + maybe one adjacent word if line2 is too short
+    if (afterWords.length > 0 && afterWords[0].length <= 6) {
+      line2 = mainKeyword + ' ' + afterWords[0];
+      line3 = afterWords.slice(1, MAX_LINE3_WORDS + 1).join(' ');
+    } else {
+      line2 = mainKeyword;
+      line3 = afterWords.slice(0, MAX_LINE3_WORDS).join(' ');
+    }
+    
+    // If line1 is empty, try to borrow from the beginning
     if (!line1 && line3) {
       const line3Words = line3.split(' ');
-      if (line3Words.length > 2) {
-        line1 = line3Words.slice(0, Math.ceil(line3Words.length / 2)).join(' ');
-        line3 = line3Words.slice(Math.ceil(line3Words.length / 2)).join(' ');
+      if (line3Words.length >= 2) {
+        line1 = line3Words[0];
+        line3 = line3Words.slice(1, MAX_LINE3_WORDS).join(' ');
       }
     }
   } else {
-    // No food keyword found - split by word count
-    const totalWords = words.length;
+    // No food keyword found - split evenly
+    const totalWords = Math.min(words.length, MAX_LINE1_WORDS + MAX_LINE2_WORDS + MAX_LINE3_WORDS);
+    const limitedWords = words.slice(0, totalWords);
     
-    if (totalWords <= 2) {
-      line2 = words.join(' ');
-    } else if (totalWords <= 4) {
-      line1 = words[0];
-      line2 = words.slice(1, -1).join(' ');
-      line3 = words[words.length - 1];
+    if (limitedWords.length <= 2) {
+      line2 = limitedWords.join(' ');
+    } else if (limitedWords.length <= 4) {
+      line1 = limitedWords[0];
+      line2 = limitedWords.slice(1, -1).join(' ');
+      line3 = limitedWords[limitedWords.length - 1];
     } else {
-      // Split roughly: 30% / 40% / 30%
-      const line1Count = Math.max(1, Math.floor(totalWords * 0.3));
-      const line3Count = Math.max(1, Math.floor(totalWords * 0.3));
-      const line2Count = totalWords - line1Count - line3Count;
-      
-      line1 = words.slice(0, line1Count).join(' ');
-      line2 = words.slice(line1Count, line1Count + line2Count).join(' ');
-      line3 = words.slice(line1Count + line2Count).join(' ');
+      line1 = limitedWords.slice(0, 2).join(' ');
+      line2 = limitedWords.slice(2, 4).join(' ');
+      line3 = limitedWords.slice(4, 6).join(' ');
     }
   }
+  
+  // Final safety: truncate any line that's still too long (more than 20 chars gets trimmed)
+  const truncateLine = (line, maxWords) => {
+    const lineWords = line.split(' ').filter(w => w.length > 0);
+    return lineWords.slice(0, maxWords).join(' ');
+  };
+  
+  line1 = truncateLine(line1, MAX_LINE1_WORDS);
+  line2 = truncateLine(line2, MAX_LINE2_WORDS);
+  line3 = truncateLine(line3, MAX_LINE3_WORDS);
   
   console.log(`  📝 Auto-split: "${line1}" | "${line2}" | "${line3}"`);
   
