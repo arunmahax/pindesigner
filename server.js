@@ -448,14 +448,14 @@ function buildTagObjects(tagTexts, colors = null) {
     text: text,
     backgroundColor: tagColors[index % tagColors.length],
     textColor: '#FFFFFF',
-    fontSize: 32,
+    fontSize: 42,
     fontFamily: 'Montserrat',
     fontWeight: '700',
-    paddingTop: 16,
-    paddingBottom: 16,
-    paddingLeft: 24,
-    paddingRight: 24,
-    borderRadius: 25,
+    paddingTop: 20,
+    paddingBottom: 20,
+    paddingLeft: 32,
+    paddingRight: 32,
+    borderRadius: 30,
     position: positions[index] || { x: 30, y: 30 }
   }));
 }
