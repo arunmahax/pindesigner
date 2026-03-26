@@ -243,6 +243,195 @@ function toTitleCase(str) {
     .join(' ');
 }
 
+/**
+ * Auto-split a recipe title into 3 lines for Pinterest pin layout
+ * Returns: { line1: "EASY QUESO", line2: "CHICKEN", line3: "ENCHILADAS" }
+ */
+function autoSplitTitle(title) {
+  if (!title) return { line1: '', line2: '', line3: '' };
+  
+  // Clean up the title - remove common suffixes and clean punctuation
+  let cleaned = title
+    .replace(/[-–—:]/g, ' ')
+    .replace(/\s+(recipe|recipes|dish|meal|dinner|lunch|breakfast|idea|ideas)$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toUpperCase();
+  
+  const words = cleaned.split(' ').filter(w => w.length > 0);
+  
+  // Remove filler words for main keyword detection
+  const fillerWords = ['THE', 'A', 'AN', 'WITH', 'AND', 'IN', 'ON', 'FOR', 'TO', 'OF', 'BEST', 'EASY', 'SIMPLE', 'QUICK', 'DELICIOUS', 'HOMEMADE', 'PERFECT', 'ULTIMATE'];
+  
+  // Food keywords that should be emphasized (line 2)
+  const foodKeywords = ['CHICKEN', 'BEEF', 'PORK', 'FISH', 'SALMON', 'SHRIMP', 'PASTA', 'RICE', 'SOUP', 'STEW', 'SALAD', 'CAKE', 'PIE', 'BREAD', 'COOKIE', 'COOKIES', 'BOWL', 'TACOS', 'BURGER', 'PIZZA', 'CURRY', 'NOODLES', 'WINGS', 'RIBS', 'STEAK', 'ENCHILADAS', 'CASSEROLE', 'SANDWICH', 'WRAP', 'QUESADILLA', 'MEATBALLS', 'LASAGNA', 'CHILI', 'GNOCCHI', 'POTATOES', 'VEGETABLES'];
+  
+  // Find the main food keyword
+  let mainKeywordIndex = -1;
+  let mainKeyword = '';
+  
+  for (let i = 0; i < words.length; i++) {
+    if (foodKeywords.includes(words[i])) {
+      mainKeywordIndex = i;
+      mainKeyword = words[i];
+      break;
+    }
+  }
+  
+  let line1 = '', line2 = '', line3 = '';
+  
+  if (mainKeywordIndex >= 0) {
+    // Found a food keyword - use it as line 2
+    line1 = words.slice(0, mainKeywordIndex).join(' ');
+    line2 = mainKeyword;
+    line3 = words.slice(mainKeywordIndex + 1).join(' ');
+    
+    // If line1 is empty, try to move some words from line3
+    if (!line1 && line3) {
+      const line3Words = line3.split(' ');
+      if (line3Words.length > 2) {
+        line1 = line3Words.slice(0, Math.ceil(line3Words.length / 2)).join(' ');
+        line3 = line3Words.slice(Math.ceil(line3Words.length / 2)).join(' ');
+      }
+    }
+  } else {
+    // No food keyword found - split by word count
+    const totalWords = words.length;
+    
+    if (totalWords <= 2) {
+      line2 = words.join(' ');
+    } else if (totalWords <= 4) {
+      line1 = words[0];
+      line2 = words.slice(1, -1).join(' ');
+      line3 = words[words.length - 1];
+    } else {
+      // Split roughly: 30% / 40% / 30%
+      const line1Count = Math.max(1, Math.floor(totalWords * 0.3));
+      const line3Count = Math.max(1, Math.floor(totalWords * 0.3));
+      const line2Count = totalWords - line1Count - line3Count;
+      
+      line1 = words.slice(0, line1Count).join(' ');
+      line2 = words.slice(line1Count, line1Count + line2Count).join(' ');
+      line3 = words.slice(line1Count + line2Count).join(' ');
+    }
+  }
+  
+  console.log(`  📝 Auto-split: "${line1}" | "${line2}" | "${line3}"`);
+  
+  return { line1, line2, line3 };
+}
+
+/**
+ * Auto-generate Pinterest tags based on recipe title keywords
+ */
+function autoGenerateTags(title, maxTags = 2) {
+  if (!title) return [];
+  
+  const titleLower = title.toLowerCase();
+  const tags = [];
+  
+  // Tag rules: keyword -> tag text
+  const tagRules = [
+    // Cooking method tags
+    { keywords: ['air fryer', 'airfryer'], tag: 'AIR FRYER' },
+    { keywords: ['instant pot', 'pressure cooker'], tag: 'INSTANT POT' },
+    { keywords: ['slow cooker', 'crockpot', 'crock pot'], tag: 'SLOW COOKER' },
+    { keywords: ['one pot', 'one-pot', 'onepot'], tag: 'ONE POT' },
+    { keywords: ['sheet pan', 'sheet-pan'], tag: 'SHEET PAN' },
+    { keywords: ['grilled', 'grill', 'bbq', 'barbecue'], tag: 'GRILLED' },
+    { keywords: ['baked', 'roasted'], tag: 'OVEN BAKED' },
+    { keywords: ['fried', 'crispy'], tag: 'CRISPY' },
+    
+    // Diet/health tags
+    { keywords: ['healthy', 'light', 'low calorie', 'diet'], tag: 'HEALTHY' },
+    { keywords: ['keto', 'low carb', 'low-carb'], tag: 'KETO' },
+    { keywords: ['vegan'], tag: 'VEGAN' },
+    { keywords: ['vegetarian', 'veggie'], tag: 'VEGETARIAN' },
+    { keywords: ['gluten free', 'gluten-free'], tag: 'GLUTEN FREE' },
+    { keywords: ['high protein', 'protein'], tag: 'HIGH PROTEIN' },
+    
+    // Time/ease tags
+    { keywords: ['easy', 'simple', 'quick', '30 minute', '30-minute', '15 minute', '20 minute'], tag: 'EASY RECIPE' },
+    { keywords: ['weeknight', 'week night', 'busy'], tag: 'WEEKNIGHT DINNER' },
+    
+    // Meal type tags
+    { keywords: ['breakfast', 'brunch', 'morning'], tag: 'BREAKFAST' },
+    { keywords: ['lunch', 'midday'], tag: 'LUNCH' },
+    { keywords: ['dinner', 'supper'], tag: 'EASY DINNER' },
+    { keywords: ['dessert', 'sweet', 'cake', 'cookie', 'pie'], tag: 'DESSERT' },
+    { keywords: ['appetizer', 'starter', 'snack'], tag: 'APPETIZER' },
+    { keywords: ['soup', 'stew', 'chili'], tag: 'COMFORT FOOD' },
+    
+    // Cuisine tags
+    { keywords: ['italian', 'pasta', 'pizza', 'lasagna'], tag: 'ITALIAN' },
+    { keywords: ['mexican', 'taco', 'enchilada', 'burrito', 'quesadilla'], tag: 'MEXICAN' },
+    { keywords: ['asian', 'chinese', 'japanese', 'thai', 'korean'], tag: 'ASIAN' },
+    { keywords: ['indian', 'curry', 'tikka', 'masala'], tag: 'INDIAN' },
+    { keywords: ['american', 'burger', 'bbq'], tag: 'AMERICAN' },
+    { keywords: ['mediterranean', 'greek'], tag: 'MEDITERRANEAN' },
+    { keywords: ['nigerian', 'african', 'jollof'], tag: 'AFRICAN' },
+    
+    // Flavor tags
+    { keywords: ['spicy', 'hot', 'chili', 'jalapeno', 'buffalo'], tag: 'SPICY' },
+    { keywords: ['creamy', 'cheesy', 'cheese'], tag: 'CHEESY' },
+    { keywords: ['garlic', 'garlicky'], tag: 'GARLIC LOVER' },
+    { keywords: ['honey', 'sweet and'], tag: 'SWEET & SAVORY' },
+    
+    // Protein tags
+    { keywords: ['chicken'], tag: 'CHICKEN RECIPE' },
+    { keywords: ['beef', 'steak'], tag: 'BEEF RECIPE' },
+    { keywords: ['pork', 'bacon'], tag: 'PORK RECIPE' },
+    { keywords: ['fish', 'salmon', 'shrimp', 'seafood'], tag: 'SEAFOOD' }
+  ];
+  
+  // Find matching tags
+  for (const rule of tagRules) {
+    if (tags.length >= maxTags) break;
+    
+    for (const keyword of rule.keywords) {
+      if (titleLower.includes(keyword) && !tags.includes(rule.tag)) {
+        tags.push(rule.tag);
+        break;
+      }
+    }
+  }
+  
+  // If no tags found, add generic ones
+  if (tags.length === 0) {
+    tags.push('EASY RECIPE');
+  }
+  if (tags.length < maxTags) {
+    tags.push('TRY THIS!');
+  }
+  
+  console.log(`  🏷️  Auto-tags: ${tags.join(', ')}`);
+  
+  return tags;
+}
+
+/**
+ * Build tag objects for rendering
+ */
+function buildTagObjects(tagTexts, colors = null) {
+  const defaultColors = ['#FF6B35', '#4CAF50', '#E60023', '#0073B1', '#7C3AED', '#059669'];
+  const tagColors = colors || defaultColors;
+  
+  return tagTexts.map((text, index) => ({
+    text: text,
+    backgroundColor: tagColors[index % tagColors.length],
+    textColor: '#FFFFFF',
+    fontSize: 32,
+    fontFamily: 'Montserrat',
+    fontWeight: '700',
+    paddingTop: 16,
+    paddingBottom: 16,
+    paddingLeft: 24,
+    paddingRight: 24,
+    borderRadius: 25,
+    position: { x: 30 + (index * 200), y: 30 }
+  }));
+}
+
 // ============================================================================
 // CANVAS COMPONENTS
 // ============================================================================
@@ -662,7 +851,10 @@ app.post('/api/create-pin', async (req, res) => {
       topTags = null,
       styleOverrides = {},
       smartLayoutLines = null, // { line1: "...", line2: "...", line3: "..." }
-      smartLayoutOptions = {} // Options for smart layout (fonts, colors, sizes)
+      smartLayoutOptions = {}, // Options for smart layout (fonts, colors, sizes)
+      autoSplit = true, // Auto-split title into 3 lines (default: true)
+      autoTags = true, // Auto-generate tags (default: true)
+      tagColors = null // Custom tag colors array
     } = req.body;
 
     // Validate required fields
@@ -675,15 +867,27 @@ app.post('/api/create-pin', async (req, res) => {
     // Process title
     let recipeTitle = toTitleCase(rawRecipeTitle);
     
-    // Use smart layout lines if provided
+    // Use smart layout lines if provided, otherwise auto-split
     let smartLines = null;
     if (smartLayoutLines && (smartLayoutLines.line1 || smartLayoutLines.line2 || smartLayoutLines.line3)) {
+      // Use provided lines
       smartLines = {
         line1: (smartLayoutLines.line1 || '').toUpperCase(),
         line2: (smartLayoutLines.line2 || '').toUpperCase(),
         line3: (smartLayoutLines.line3 || '').toUpperCase()
       };
-      console.log(`🎨 Smart layout: "${smartLines.line1}" | "${smartLines.line2}" | "${smartLines.line3}"`);
+      console.log(`🎨 Smart layout (manual): "${smartLines.line1}" | "${smartLines.line2}" | "${smartLines.line3}"`);
+    } else if (autoSplit && recipeTitle) {
+      // Auto-split the title
+      smartLines = autoSplitTitle(recipeTitle);
+      console.log(`🎨 Smart layout (auto): "${smartLines.line1}" | "${smartLines.line2}" | "${smartLines.line3}"`);
+    }
+    
+    // Auto-generate tags if not provided
+    let tagsToUse = topTags;
+    if ((!topTags || topTags.length === 0) && autoTags && recipeTitle) {
+      const generatedTagTexts = autoGenerateTags(recipeTitle, 2);
+      tagsToUse = buildTagObjects(generatedTagTexts, tagColors);
     }
 
     if (showTextOverlay && !recipeTitle && !smartLines) {
@@ -835,8 +1039,8 @@ app.post('/api/create-pin', async (req, res) => {
       });
     }
 
-    // Add manual tags (if provided)
-    const tagsToRender = topTags?.length > 0 ? topTags : (styleOverrides.topTags || []);
+    // Add tags (auto-generated or manual)
+    const tagsToRender = tagsToUse?.length > 0 ? tagsToUse : (styleOverrides.topTags || []);
     
     for (const tagConfig of tagsToRender) {
       if (!tagConfig.text) continue;
@@ -897,9 +1101,15 @@ app.post('/api/create-pin', async (req, res) => {
       } : null,
       smartLayout: smartLines ? {
         enabled: true,
+        autoGenerated: !smartLayoutLines,
         line1: smartLines.line1,
         line2: smartLines.line2,
         line3: smartLines.line3
+      } : null,
+      tags: tagsToRender.length > 0 ? {
+        count: tagsToRender.length,
+        autoGenerated: !topTags || topTags.length === 0,
+        texts: tagsToRender.map(t => t.text)
       } : null
     });
 
